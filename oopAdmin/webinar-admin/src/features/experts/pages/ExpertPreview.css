@@ -241,3 +241,33 @@
     opacity: 1;
   }
 }
+
+.preview-short-info {
+  margin-top: 24px;
+  max-width: 450px;
+  padding: 16px 18px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.preview-short-info__title {
+  margin: 0 0 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.preview-short-info__text {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.4;
+  color: #ffffff;
+}
+
+.preview-short-info__empty {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.55);
+}

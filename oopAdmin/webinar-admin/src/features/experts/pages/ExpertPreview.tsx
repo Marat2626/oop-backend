@@ -1,6 +1,7 @@
 import React from "react";
 import { X } from "lucide-react";
 import "./ExpertPreview.css";
+import { mediaUrl } from "../../../shared/baseQuery";
 
 interface ExpertPreviewProps {
   isOpen: boolean;
@@ -11,18 +12,11 @@ interface ExpertPreviewProps {
     organization: string;
     position: string;
     specialization: string;
+    short_info?: string;
   };
 }
 
-const API_BASE_URL = "https://oop-backend-1.onrender.com";
-
-const getFullPhotoUrl = (photoUrl: string) => {
-  if (!photoUrl) return "";
-  if (photoUrl.startsWith("/uploads")) {
-    return `${API_BASE_URL}${photoUrl}`;
-  }
-  return photoUrl;
-};
+const getFullPhotoUrl = (photoUrl: string) => mediaUrl(photoUrl);
 
 export const ExpertPreview: React.FC<ExpertPreviewProps> = ({
   isOpen,
@@ -32,6 +26,7 @@ export const ExpertPreview: React.FC<ExpertPreviewProps> = ({
   if (!isOpen) return null;
 
   const fullPhotoUrl = getFullPhotoUrl(data.photo);
+  const shortInfo = data.short_info?.trim() || "";
 
   const previewExpert = {
     id: "preview",
@@ -69,7 +64,7 @@ export const ExpertPreview: React.FC<ExpertPreviewProps> = ({
 
           <div className="expert__footer">
             <div className="expert__buttons">
-              <button className="btn__webinar">
+              <button type="button" className="btn__webinar">
                 {previewExpert.buttonText}
               </button>
               <div className="btn__arr">
@@ -89,6 +84,20 @@ export const ExpertPreview: React.FC<ExpertPreviewProps> = ({
             </div>
             <p className="expert__text">{previewExpert.footerText}</p>
           </div>
+        </div>
+
+        <div className="preview-short-info">
+          <h3 className="preview-short-info__title">
+            Краткая информация (ближайший вебинар)
+          </h3>
+          {shortInfo ? (
+            <p className="preview-short-info__text">{shortInfo}</p>
+          ) : (
+            <p className="preview-short-info__empty">
+              Не заполнена — на главной под экспертом останутся организация и
+              должность
+            </p>
+          )}
         </div>
       </div>
     </div>

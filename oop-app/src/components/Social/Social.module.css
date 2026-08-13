@@ -50,16 +50,17 @@
   justify-content: center;
   align-items: center;
   transition: transform 0.25s ease;
-  cursor: pointer;
-}
-
-.cocial__img__container:hover {
-  transform: scale(1.05);
+  cursor: default;
 }
 
 .social__link {
   text-decoration: none;
   color: inherit;
+  cursor: pointer;
+}
+
+.social__link:hover {
+  transform: scale(1.05);
 }
 .social__img {
   width: 60%;

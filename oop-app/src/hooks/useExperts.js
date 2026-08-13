@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
 import { fetchExperts } from "../api/experts.js";
-import { expertsData as fallbackExperts } from "../expert.js";
 import { mapExpertToCard } from "../utils/mapExpert.js";
 
-export function useExperts({ fallbackOnError = true } = {}) {
+export function useExperts() {
   const [experts, setExperts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -17,20 +16,12 @@ export function useExperts({ fallbackOnError = true } = {}) {
         const items = await fetchExperts();
         if (cancelled) return;
 
-        if (items.length > 0) {
-          setExperts(items.map(mapExpertToCard));
-        } else {
-          setExperts([]);
-        }
+        setExperts(items.map(mapExpertToCard));
         setError(null);
       } catch (err) {
         if (cancelled) return;
         setError(err);
-        if (fallbackOnError) {
-          setExperts(fallbackExperts);
-        } else {
-          setExperts([]);
-        }
+        setExperts([]);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -41,7 +32,7 @@ export function useExperts({ fallbackOnError = true } = {}) {
     return () => {
       cancelled = true;
     };
-  }, [fallbackOnError]);
+  }, []);
 
   return { experts, loading, error };
 }

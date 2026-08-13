@@ -3,6 +3,7 @@ import SprintSrtring from "../../components/SprintSrtring/SprintSrtring.jsx";
 import Social from "../../components/Social/Social.jsx";
 import { asset } from "../../utils/asset.js";
 import { cnWow } from "../../utils/wow.js";
+import { useSiteContent } from "../../hooks/useSiteContent.js";
 
 const audienceCards = [
   {
@@ -23,18 +24,23 @@ const audienceCards = [
 ];
 
 export default function About() {
+  const { content } = useSiteContent();
+  const brand = content.brand;
+  const about = content.about;
+  const stats = content.stats;
+
   return (
     <>
       <div className={styles.about}>
         <div className={styles.cool__container_new}>
+          <img
+            className={styles.cool__vector_right}
+            src={asset("/Vector.svg")}
+            alt=""
+            aria-hidden="true"
+          />
           <div className="container">
             <div className={styles.cool__content}>
-              <img
-                className={styles.cool__vector_right}
-                src={asset("/Vector.svg")}
-                alt=""
-                aria-hidden="true"
-              />
               <div className={styles.cool__content__top}>
                 <div className={styles.cool__left__top}>
                   <p
@@ -42,21 +48,21 @@ export default function About() {
                       delay: "0.1s",
                     })}
                   >
-                    ОТКРЫТОЕ
+                    {brand.title_line1}
                   </p>
                   <p
                     {...cnWow(styles.text__red, "fadeInLeft", {
                       delay: "0.2s",
                     })}
                   >
-                    ОБРАЗОВАТЕЛЬНОЕ
+                    {brand.title_line2}
                   </p>
                   <p
                     {...cnWow(styles.text__title, "fadeInLeft", {
                       delay: "0.3s",
                     })}
                   >
-                    ПРОСТРАНСТВО
+                    {brand.title_line3}
                   </p>
                 </div>
               </div>
@@ -74,8 +80,12 @@ export default function About() {
                     />
                   </div>
                   <div>
-                    <p className={styles.cool__text__info}>600+ </p>
-                    <p className={styles.cool__text__infD}>вебинаров</p>
+                    <p className={styles.cool__text__info}>
+                      {stats.webinars_value}{" "}
+                    </p>
+                    <p className={styles.cool__text__infD}>
+                      {stats.webinars_label}
+                    </p>
                   </div>
                 </div>
                 <div
@@ -91,8 +101,12 @@ export default function About() {
                     />
                   </div>
                   <div>
-                    <p className={styles.cool__text__info}>100 000+ </p>
-                    <p className={styles.cool__text__infD}>слушателей</p>
+                    <p className={styles.cool__text__info}>
+                      {stats.listeners_value}{" "}
+                    </p>
+                    <p className={styles.cool__text__infD}>
+                      {stats.listeners_label}
+                    </p>
                   </div>
                   <div>
                     <img
@@ -115,8 +129,12 @@ export default function About() {
                     />
                   </div>
                   <div>
-                    <p className={styles.cool__text__info}>20+</p>
-                    <p className={styles.cool__text__infD}>тематик</p>
+                    <p className={styles.cool__text__info}>
+                      {stats.topics_value}
+                    </p>
+                    <p className={styles.cool__text__infD}>
+                      {stats.topics_label}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -167,9 +185,7 @@ export default function About() {
                   <div className={styles.about__top_RL}>
                     <div className={styles.about__textRTT}>
                       <p className={styles.about__textRT}>
-                        Тогда и родилась идея Открытого образовательного
-                        пространства (ООП). Пространства для развития и обмена
-                        опытом, которое будет доступно всем.
+                        {about.right_block_1}
                       </p>
                     </div>
                     <div className={styles.about__top_RR}>
@@ -208,11 +224,7 @@ export default function About() {
 
                       <div className={styles.about__top_TXT}>
                         <p className={styles.about__TXT}>
-                          Мы стали приглашать экспертов из разных областей
-                          знания, чтобы поговорить с ними в прямом эфире. Именно
-                          такой формат позволял всем желающим легко
-                          присоединиться к беседе и задать вопрос эксперту из
-                          любой точки мира.
+                          {about.right_block_2}
                         </p>
                       </div>
                     </div>
@@ -258,9 +270,7 @@ export default function About() {
                     </p>
                   </div>
                 </div>
-                <div
-                  {...cnWow(styles.vera, "fadeInUp", { delay: "0.15s" })}
-                >
+                <div {...cnWow(styles.vera, "fadeInUp", { delay: "0.15s" })}>
                   <p className={styles.vera__text}>
                     Мы верим, что знания — это базовая потребность человека.
                     Особенно в мире, который меняется быстрее, чем мы успеваем

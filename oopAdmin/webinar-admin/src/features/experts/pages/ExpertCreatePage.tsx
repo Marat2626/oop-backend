@@ -3,19 +3,20 @@ import { ExpertForm } from "../components/ExpertForm";
 import { useCreateExpertMutation } from "../api/expertsApi";
 import { toast } from "sonner";
 import { ArrowLeft } from "lucide-react";
+import { ExpertFormData } from "../types";
+import { getApiErrorMessage } from "../../../shared/apiError";
 
 export const ExpertCreatePage = () => {
   const navigate = useNavigate();
   const [createExpert, { isLoading }] = useCreateExpertMutation();
 
-  const handleSubmit = async (data: any) => {
+  const handleSubmit = async (data: ExpertFormData) => {
     try {
       await createExpert(data).unwrap();
       toast.success("Эксперт успешно создан");
       navigate("/experts");
-    } catch (error: any) {
-      console.error("Error:", error);
-      toast.error(error?.data?.message || "Ошибка при создании эксперта");
+    } catch (error: unknown) {
+      toast.error(getApiErrorMessage(error, "Ошибка при создании эксперта"));
     }
   };
 

@@ -1,6 +1,6 @@
 .vebinars__container {
   background-color: #e9eaee;
-  height: 1260px;
+  min-height: 1260px;
 }
 
 .vebinars__header {
@@ -100,10 +100,19 @@
 }
 
 .button__card:hover,
-.button__card:active {
+.button__card:active,
+.button__card_active {
   color: #ffffff;
   background-color: #1a1230;
   border-color: #1a1230;
+}
+
+.empty__text {
+  width: 100%;
+  text-align: center;
+  color: #6f6f6f;
+  font-size: 18px;
+  padding: 40px 0 80px;
 }
 
 .vebinars__footer__text {
@@ -207,6 +216,7 @@
 @media (max-width: 1024px) {
   .vebinars__container {
     height: auto;
+    min-height: 0;
     padding-bottom: 80px;
   }
 
@@ -224,9 +234,10 @@
   }
 
   .card {
-    flex: 0 0 calc(50% - 15px);
+    flex: 0 0 calc(50% - 12px);
     width: auto;
-    max-width: 420px;
+    max-width: none;
+    height: auto;
   }
 
   .card__image {
@@ -234,9 +245,15 @@
     height: auto;
     aspect-ratio: 420 / 296;
   }
+
+  .card__title {
+    width: 100%;
+    max-width: none;
+  }
 }
 
-@media (max-width: 768px) {
+/* Узкий планшет / мобилка: одна карточка на ряд */
+@media (max-width: 670px) {
   .vebinars__container {
     padding-bottom: 48px;
   }
@@ -286,30 +303,31 @@
 
   .cards__grid {
     display: flex;
+    flex-direction: column;
     flex-wrap: nowrap;
-    overflow-x: auto;
     gap: 16px;
     margin-top: 20px;
     margin-bottom: 48px;
-    padding-bottom: 8px;
-    scroll-snap-type: x mandatory;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-  }
-
-  .cards__grid::-webkit-scrollbar {
-    display: none;
   }
 
   .card {
-    flex: 0 0 min(82vw, 320px);
+    flex: none;
+    width: 100%;
     max-width: none;
+  }
+
+  .card__image {
+    width: 100%;
+    border-radius: 14px;
+  }
+
+  .card__overlay {
+    padding: 16px 14px;
   }
 
   .card__title {
     font-size: 18px;
     width: 100%;
-    max-width: none;
   }
 
   .play__button {
@@ -337,11 +355,16 @@
     font-size: 22px;
   }
 
-  .card {
-    flex-basis: 85vw;
-  }
-
   .card__title {
     font-size: 16px;
+  }
+
+  .card__overlay {
+    padding: 14px 12px;
+  }
+
+  .play__button {
+    width: 44px;
+    height: 44px;
   }
 }

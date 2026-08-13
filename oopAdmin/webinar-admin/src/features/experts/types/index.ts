@@ -5,6 +5,8 @@ export interface Expert {
   organization: string;
   position: string;
   specialization: string;
+  short_info: string;
+  webinar_ids: string;
 }
 
 export interface ExpertFormData {
@@ -13,4 +15,6 @@ export interface ExpertFormData {
   organization: string;
   position: string;
   specialization: string;
+  short_info: string;
+  webinar_ids: string;
 }

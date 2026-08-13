@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: oop-postgres
+    environment:
+      POSTGRES_USER: oop
+      POSTGRES_PASSWORD: oop123
+      POSTGRES_DB: moscow
+    ports:
+      - "5432:5432"
+    volumes:
+      - oop_pg_data:/var/lib/postgresql/data
+
+volumes:
+  oop_pg_data:

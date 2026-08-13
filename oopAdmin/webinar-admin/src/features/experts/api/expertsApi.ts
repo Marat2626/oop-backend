@@ -1,9 +1,6 @@
-import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import { createApi } from "@reduxjs/toolkit/query/react";
 import { Expert, ExpertFormData } from "../types";
-
-const API_BASE_URL = "https://oop-backend-1.onrender.com";
-
-const getToken = () => localStorage.getItem("token");
+import { baseQueryWithAuth } from "../../../shared/baseQuery";
 
 interface UploadPhotoResponse {
   url: string;
@@ -22,30 +19,44 @@ const parseListResponse = <T>(response: unknown): T[] => {
   return [];
 };
 
-const buildExpertBody = (data: ExpertFormData): Record<string, string> => {
-  const body: Record<string, string> = {};
+const buildExpertBody = (
+  data: ExpertFormData,
+  mode: "create" | "update",
+): Record<string, string> => {
+  const name = (data.name || "").trim();
+  const photo = (data.photo || "").trim();
+  const organization = (data.organization || "").trim();
+  const position = (data.position || "").trim();
+  const specialization = (data.specialization || "").trim();
+  const shortInfo = (data.short_info || "").trim();
+  const webinarIds = (data.webinar_ids || "").trim();
 
-  if (data.name?.trim()) body.name = data.name.trim();
-  if (data.photo?.trim()) body.photo = data.photo.trim();
-  if (data.organization?.trim()) body.organization = data.organization.trim();
-  if (data.position?.trim()) body.position = data.position.trim();
-  if (data.specialization?.trim()) body.specialization = data.specialization.trim();
+  if (mode === "create") {
+    const body: Record<string, string> = { name };
+    if (photo) body.photo = photo;
+    if (organization) body.organization = organization;
+    if (position) body.position = position;
+    if (specialization) body.specialization = specialization;
+    if (shortInfo) body.short_info = shortInfo;
+    if (webinarIds) body.webinar_ids = webinarIds;
+    return body;
+  }
 
-  return body;
+  // PATCH: всегда шлём опциональные поля — пустая строка очищает значение
+  return {
+    name,
+    photo,
+    organization,
+    position,
+    specialization,
+    short_info: shortInfo,
+    webinar_ids: webinarIds,
+  };
 };
 
 export const expertsApi = createApi({
   reducerPath: "expertsApi",
-  baseQuery: fetchBaseQuery({
-    baseUrl: API_BASE_URL,
-    prepareHeaders: (headers) => {
-      const token = getToken();
-      if (token) {
-        headers.set("token", token);
-      }
-      return headers;
-    },
-  }),
+  baseQuery: baseQueryWithAuth,
   tagTypes: ["Expert"],
   endpoints: (builder) => ({
     getExperts: builder.query<Expert[], void>({
@@ -54,6 +65,8 @@ export const expertsApi = createApi({
         parseListResponse<Expert>(response).map((expert) => ({
           ...expert,
           id: String(expert.id),
+          short_info: expert.short_info ?? "",
+          webinar_ids: expert.webinar_ids ?? "",
         })),
       providesTags: ["Expert"],
     }),
@@ -62,7 +75,10 @@ export const expertsApi = createApi({
       transformResponse: (response: Expert) => ({
         ...response,
         id: String(response.id),
+        short_info: response.short_info ?? "",
+        webinar_ids: response.webinar_ids ?? "",
       }),
+      providesTags: (_result, _error, id) => [{ type: "Expert", id }],
     }),
     uploadPhoto: builder.mutation<UploadPhotoResponse, File>({
       query: (file) => {
@@ -90,7 +106,7 @@ export const expertsApi = createApi({
       query: (data) => ({
         url: "/admin/create/expert",
         method: "POST",
-        body: buildExpertBody(data),
+        body: buildExpertBody(data, "create"),
       }),
       invalidatesTags: ["Expert"],
     }),
@@ -101,7 +117,7 @@ export const expertsApi = createApi({
       query: ({ id, data }) => ({
         url: `/admin/expert/update/${id}`,
         method: "PATCH",
-        body: buildExpertBody(data),
+        body: buildExpertBody(data, "update"),
       }),
       invalidatesTags: ["Expert"],
     }),

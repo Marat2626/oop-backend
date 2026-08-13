@@ -10,14 +10,23 @@
   --font-display: "Alter Aves", sans-serif;
   --font-body: "GT Walsheim Pro", Arial, sans-serif;
 }
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 html,
 body {
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 body {
   margin: 0;
   padding: 0;
+  /* тот же цвет, что у героя — прозрачный sticky-хедер не даёт белую «дыру» */
+  background-color: var(--bg-color-violette);
 }
 body * {
   margin: 0;
@@ -25,14 +34,4 @@ body * {
 }
 a {
   text-decoration: none;
-}
-
-/* Force app header to participate in normal page flow. */
-[class*="Header_container__header"],
-[class*="Header_header"] {
-  position: static !important;
-  top: auto !important;
-  right: auto !important;
-  bottom: auto !important;
-  left: auto !important;
 }

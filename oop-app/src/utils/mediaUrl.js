@@ -6,8 +6,9 @@ export function mediaUrl(path) {
   if (path.startsWith("http://") || path.startsWith("https://")) {
     return path;
   }
-  if (path.startsWith("/uploads")) {
-    return `${API_BASE_URL}${path}`;
+  if (path.startsWith("/uploads") || path.startsWith("uploads/")) {
+    const normalized = path.startsWith("/") ? path : `/${path}`;
+    return `${API_BASE_URL}${normalized}`;
   }
   return asset(path);
 }

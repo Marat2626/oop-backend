@@ -1,19 +1,12 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import styles from "./Calendar.module.css";
 import { asset } from "../../utils/asset.js";
 import { cnWow } from "../../utils/wow.js";
+import { fetchPastVideos, fetchPublicWebinars } from "../../api/webinars.js";
+import { mapWebinarModal } from "../../utils/mapWebinar.js";
+import WebinarModal from "../../components/WebinarModal/WebinarModal.jsx";
 
 const WEEK_DAYS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
-
-const TEST_EVENT_TEMPLATE = {
-  tag: "#Личная эффективность",
-  name: "Как управлять своим временем: техники и инструменты",
-  time: "18:00 (МСК)",
-  speaker: "Алексей Петров",
-  place: "Онлайн",
-};
-
-const EVENT_DAYS = [6, 12, 15, 20, 25];
 
 function toDateKey(date) {
   const y = date.getFullYear();
@@ -22,34 +15,97 @@ function toDateKey(date) {
   return `${y}-${m}-${d}`;
 }
 
-function formatEventDate(date) {
+function toDateKeyFromIso(iso) {
+  if (!iso) return "";
+  const date = new Date(iso);
+  if (!Number.isFinite(date.getTime())) return "";
+  // Ключ дня в МСК — как formatEventDate / formatEventTime
+  return date.toLocaleDateString("en-CA", { timeZone: "Europe/Moscow" });
+}
+
+function formatEventDate(iso) {
+  const date = new Date(iso);
+  if (!Number.isFinite(date.getTime())) return "";
   return date.toLocaleDateString("ru-RU", {
     day: "numeric",
     month: "long",
+    timeZone: "Europe/Moscow",
   });
 }
 
-function buildTestEvents() {
-  const events = {};
-  const year = new Date().getFullYear();
+function formatEventTime(iso) {
+  const date = new Date(iso);
+  if (!Number.isFinite(date.getTime())) return "";
+  const time = date.toLocaleTimeString("ru-RU", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: "Europe/Moscow",
+  });
+  return `${time} (МСК)`;
+}
 
-  for (let month = 0; month < 12; month += 1) {
-    EVENT_DAYS.forEach((day) => {
-      const date = new Date(year, month, day);
-      if (date.getMonth() !== month) return;
-
-      const key = toDateKey(date);
-      events[key] = {
-        ...TEST_EVENT_TEMPLATE,
-        date: formatEventDate(date),
-      };
-    });
+function formatTag(webinar) {
+  if (Array.isArray(webinar.rubrics) && webinar.rubrics.length > 0) {
+    const name = webinar.rubrics[0]?.name || webinar.rubrics[0];
+    return name ? `#${name}` : "";
   }
+  return "";
+}
+
+function mapWebinarToEvent(webinar) {
+  const modal = mapWebinarModal(webinar);
+  const expertName = webinar.expert?.name || "";
+
+  return {
+    id: webinar.id,
+    tag: formatTag(webinar),
+    name: webinar.title || "",
+    date: formatEventDate(webinar.start_time),
+    time: formatEventTime(webinar.start_time),
+    speaker: expertName,
+    place: "Онлайн",
+    startTime: webinar.start_time,
+    modal,
+  };
+}
+
+async function fetchAllWebinars() {
+  const byId = new Map();
+
+  const past = await fetchPastVideos();
+  past.forEach((item) => byId.set(item.id, item));
+
+  let page = 1;
+  while (page <= 20) {
+    const items = await fetchPublicWebinars({ page, limit: 50 });
+    items.forEach((item) => byId.set(item.id, item));
+    if (items.length < 50) break;
+    page += 1;
+  }
+
+  return Array.from(byId.values());
+}
+
+function buildEventsMap(webinars) {
+  const events = {};
+
+  webinars
+    .slice()
+    .sort(
+      (a, b) =>
+        new Date(a.start_time).getTime() - new Date(b.start_time).getTime(),
+    )
+    .forEach((webinar) => {
+      const key = toDateKeyFromIso(webinar.start_time);
+      if (!key) return;
+      if (!events[key]) {
+        events[key] = mapWebinarToEvent(webinar);
+      }
+    });
 
   return events;
 }
-
-const EVENTS = buildTestEvents();
 
 function isSameDay(a, b) {
   return (
@@ -102,13 +158,12 @@ function formatMonthTitle(date) {
   return title.charAt(0).toUpperCase() + title.slice(1);
 }
 
-function findNearestEventDate(fromDate) {
-  const keys = Object.keys(EVENTS).sort();
+function findNearestEventDate(fromDate, events) {
+  const keys = Object.keys(events).sort();
+  if (keys.length === 0) return fromDate;
+
   const fromKey = toDateKey(fromDate);
-  const nearestKey = keys.find((key) => key >= fromKey) ?? keys[0];
-
-  if (!nearestKey) return fromDate;
-
+  const nearestKey = keys.find((key) => key >= fromKey) ?? keys[keys.length - 1];
   const [y, m, d] = nearestKey.split("-").map(Number);
   return new Date(y, m - 1, d);
 }
@@ -119,18 +174,56 @@ export default function Calendar() {
     return new Date(now.getFullYear(), now.getMonth(), now.getDate());
   }, []);
 
+  const [events, setEvents] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [selectedWebinar, setSelectedWebinar] = useState(null);
+
   const [viewDate, setViewDate] = useState(
     () => new Date(today.getFullYear(), today.getMonth(), 1),
   );
-  const [selectedDate, setSelectedDate] = useState(() =>
-    EVENTS[toDateKey(today)] ? today : findNearestEventDate(today),
-  );
+  const [selectedDate, setSelectedDate] = useState(today);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function load() {
+      try {
+        setLoading(true);
+        const webinars = await fetchAllWebinars();
+        if (cancelled) return;
+
+        const nextEvents = buildEventsMap(webinars);
+        setEvents(nextEvents);
+
+        setSelectedDate((prev) => {
+          if (nextEvents[toDateKey(prev)]) return prev;
+          return findNearestEventDate(today, nextEvents);
+        });
+      } catch {
+        if (!cancelled) setEvents({});
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [today]);
 
   const year = viewDate.getFullYear();
   const month = viewDate.getMonth();
   const days = useMemo(() => buildCalendarDays(year, month), [year, month]);
 
-  const selectedEvent = EVENTS[toDateKey(selectedDate)];
+  const selectedEvent = events[toDateKey(selectedDate)];
+  const isSelectedPast = selectedEvent
+    ? new Date(selectedEvent.startTime).getTime() < Date.now()
+    : selectedDate.getTime() < today.getTime();
+  const sideTitle = isSelectedPast
+    ? "Прошедший вебинар"
+    : "Ближайшие мероприятия";
 
   const goPrevMonth = () => {
     setViewDate(new Date(year, month - 1, 1));
@@ -148,7 +241,7 @@ export default function Calendar() {
   };
 
   const handleNearestClick = () => {
-    const nearestDate = findNearestEventDate(today);
+    const nearestDate = findNearestEventDate(today, events);
     setSelectedDate(nearestDate);
     setViewDate(new Date(nearestDate.getFullYear(), nearestDate.getMonth(), 1));
   };
@@ -208,7 +301,7 @@ export default function Calendar() {
                 const dateKey = toDateKey(day.date);
                 const isSelected = isSameDay(day.date, selectedDate);
                 const isToday = isSameDay(day.date, today);
-                const hasEvent = Boolean(EVENTS[dateKey]);
+                const hasEvent = Boolean(events[dateKey]);
 
                 return (
                   <button
@@ -219,13 +312,13 @@ export default function Calendar() {
                       day.muted ? styles.dayMuted : "",
                       isSelected ? styles.dayActive : "",
                       !isSelected && isToday ? styles.daySoft : "",
+                      hasEvent ? styles.dayHasEvent : "",
                     ]
                       .filter(Boolean)
                       .join(" ")}
                     onClick={() => handleDayClick(day)}
                   >
                     <span>{day.date.getDate()}</span>
-                    {hasEvent ? <i className={styles.dot} /> : null}
                   </button>
                 );
               })}
@@ -237,34 +330,62 @@ export default function Calendar() {
               delay: "0.2s",
             })}
           >
-            <h2 className={styles.event__title}>Ближайшие мероприятия</h2>
+            <h2 className={styles.event__title}>{sideTitle}</h2>
 
-            {selectedEvent ? (
+            {loading ? (
+              <div className={styles.event__empty}>
+                <p className={styles.event__emptyTitle}>Загрузка...</p>
+              </div>
+            ) : selectedEvent ? (
               <div className={styles.event__card}>
-                <span className={styles.event__tag}>{selectedEvent.tag}</span>
+                {selectedEvent.tag && (
+                  <span className={styles.event__tag}>{selectedEvent.tag}</span>
+                )}
                 <p className={styles.event__name}>{selectedEvent.name}</p>
 
                 <div className={styles.event__meta}>
                   <p>
-                    <img src={asset("/Calendar.svg")} alt="" aria-hidden="true" />
+                    <img
+                      src={asset("/Calendar.svg")}
+                      alt=""
+                      aria-hidden="true"
+                    />
                     {selectedEvent.date}
                   </p>
                   <p>
                     <img src={asset("/Clock.svg")} alt="" aria-hidden="true" />
                     {selectedEvent.time}
                   </p>
+                  {selectedEvent.speaker && (
+                    <p>
+                      <img
+                        src={asset("/User11.svg")}
+                        alt=""
+                        aria-hidden="true"
+                      />
+                      {selectedEvent.speaker}
+                    </p>
+                  )}
                   <p>
-                    <img src={asset("/User11.svg")} alt="" aria-hidden="true" />
-                    {selectedEvent.speaker}
-                  </p>
-                  <p>
-                    <img src={asset("/MapPin11.svg")} alt="" aria-hidden="true" />
+                    <img
+                      src={asset("/MapPin11.svg")}
+                      alt=""
+                      aria-hidden="true"
+                    />
                     {selectedEvent.place}
                   </p>
                 </div>
 
-                <button type="button" className={styles.event__button}>
-                  Зарегистрироваться
+                <button
+                  type="button"
+                  className={styles.event__button}
+                  onClick={() => {
+                    if (selectedEvent.modal) {
+                      setSelectedWebinar(selectedEvent.modal);
+                    }
+                  }}
+                >
+                  Подробнее
                   <img src={asset("/arrow.svg")} alt="" aria-hidden="true" />
                 </button>
               </div>
@@ -289,6 +410,12 @@ export default function Calendar() {
           </aside>
         </div>
       </div>
+
+      <WebinarModal
+        webinar={selectedWebinar}
+        isPast={selectedWebinar?.isPast !== false}
+        onClose={() => setSelectedWebinar(null)}
+      />
     </div>
   );
 }

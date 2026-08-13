@@ -1,9 +1,6 @@
-import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import { createApi } from "@reduxjs/toolkit/query/react";
 import { Social, SocialFormData } from "../types";
-
-const API_BASE_URL = "https://oop-backend-1.onrender.com";
-
-const getToken = () => localStorage.getItem("token");
+import { baseQueryWithAuth } from "../../../shared/baseQuery";
 
 const parseListResponse = <T>(response: unknown): T[] => {
   if (response && typeof response === "object" && "items" in response) {
@@ -20,29 +17,25 @@ const parseListResponse = <T>(response: unknown): T[] => {
 
 const buildSocialBody = (
   data: SocialFormData,
-  requireAll = false,
+  mode: "create" | "update",
 ): Record<string, string> => {
-  const body: Record<string, string> = {};
+  const name = (data.name || "").trim();
+  const url = (data.url || "").trim();
+  const icon = (data.icon || "").trim();
 
-  if (requireAll || data.name?.trim()) body.name = data.name.trim();
-  if (requireAll || data.url?.trim()) body.url = data.url.trim();
-  if (data.icon?.trim()) body.icon = data.icon.trim();
+  if (mode === "create") {
+    const body: Record<string, string> = { name, url };
+    if (icon) body.icon = icon;
+    return body;
+  }
 
-  return body;
+  // PATCH: всегда шлём icon — пустая строка очищает значение
+  return { name, url, icon };
 };
 
 export const socialsApi = createApi({
   reducerPath: "socialsApi",
-  baseQuery: fetchBaseQuery({
-    baseUrl: API_BASE_URL,
-    prepareHeaders: (headers) => {
-      const token = getToken();
-      if (token) {
-        headers.set("token", token);
-      }
-      return headers;
-    },
-  }),
+  baseQuery: baseQueryWithAuth,
   tagTypes: ["Social"],
   endpoints: (builder) => ({
     getSocials: builder.query<Social[], void>({
@@ -60,12 +53,13 @@ export const socialsApi = createApi({
         ...response,
         id: String(response.id),
       }),
+      providesTags: (_result, _error, id) => [{ type: "Social", id }],
     }),
     createSocial: builder.mutation<Social, SocialFormData>({
       query: (data) => ({
         url: "/admin/create/social",
         method: "POST",
-        body: buildSocialBody(data, true),
+        body: buildSocialBody(data, "create"),
       }),
       invalidatesTags: ["Social"],
     }),
@@ -76,7 +70,7 @@ export const socialsApi = createApi({
       query: ({ id, data }) => ({
         url: `/admin/social/update/${id}`,
         method: "PATCH",
-        body: buildSocialBody(data),
+        body: buildSocialBody(data, "update"),
       }),
       invalidatesTags: ["Social"],
     }),

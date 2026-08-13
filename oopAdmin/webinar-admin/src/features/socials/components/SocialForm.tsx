@@ -13,8 +13,7 @@ import {
   isAllowedImageFile,
 } from "../../../shared/imageUpload";
 import { SocialPreview } from "./SocialPreview";
-
-const API_BASE_URL = "https://oop-backend-1.onrender.com";
+import { mediaUrl } from "../../../shared/baseQuery";
 
 const socialSchema = z.object({
   name: z.string().min(1, "Название обязательно"),
@@ -29,13 +28,20 @@ interface Props {
   isLoading?: boolean;
 }
 
-const getFullIconUrl = (iconUrl: string) => {
-  if (!iconUrl) return "";
-  if (iconUrl.startsWith("/uploads")) {
-    return `${API_BASE_URL}${iconUrl}`;
-  }
-  return iconUrl;
+const emptyFormValues: SocialFormData = {
+  name: "",
+  url: "",
+  icon: "",
 };
+
+const toFormValues = (social?: Social): SocialFormData =>
+  social
+    ? {
+        name: social.name,
+        url: social.url,
+        icon: social.icon || "",
+      }
+    : emptyFormValues;
 
 export const SocialForm = ({
   initialData,
@@ -57,17 +63,7 @@ export const SocialForm = ({
     getValues,
   } = useForm<SocialFormData>({
     resolver: zodResolver(socialSchema),
-    defaultValues: initialData
-      ? {
-          name: initialData.name,
-          url: initialData.url,
-          icon: initialData.icon || "",
-        }
-      : {
-          name: "",
-          url: "",
-          icon: "",
-        },
+    defaultValues: toFormValues(initialData),
   });
 
   const iconValue = watch("icon");
@@ -75,11 +71,7 @@ export const SocialForm = ({
 
   useEffect(() => {
     if (initialData) {
-      reset({
-        name: initialData.name,
-        url: initialData.url,
-        icon: initialData.icon || "",
-      });
+      reset(toFormValues(initialData));
     }
   }, [initialData, reset]);
 
@@ -104,10 +96,12 @@ export const SocialForm = ({
 
     try {
       const result = await uploadIcon(file).unwrap();
-      setValue("icon", result.url);
+      setValue("icon", result.url, { shouldDirty: true });
       toast.success("Иконка загружена");
     } catch {
       toast.error("Ошибка при загрузке иконки");
+    } finally {
+      e.target.value = "";
     }
   };
 
@@ -126,61 +120,83 @@ export const SocialForm = ({
           </button>
         </div>
 
-        <div className="form-group">
-          <label className="label">Название *</label>
-          <input
-            {...register("name")}
-            className="input"
-            placeholder="VK, Rutube..."
-          />
-          {errors.name && (
-            <p className="text-red mt-1">{errors.name.message}</p>
-          )}
-        </div>
-
-        <div className="form-group">
-          <label className="label">Ссылка *</label>
-          <input
-            {...register("url")}
-            className="input"
-            placeholder="https://..."
-          />
-          {errors.url && <p className="text-red mt-1">{errors.url.message}</p>}
-        </div>
-
-        <div className="form-group">
-          <label className="label">Иконка</label>
-          <div className="flex items-center gap-4">
-            <label
-              className="btn btn-secondary"
-              style={{ cursor: "pointer", position: "relative" }}
-            >
-              <Upload size={16} />
-              {isUploading ? "Загрузка..." : "Выбрать файл"}
-              <input
-                type="file"
-                accept={ALLOWED_IMAGE_ACCEPT}
-                onChange={handleFileChange}
-                style={{ position: "absolute", opacity: 0, cursor: "pointer" }}
-                disabled={isUploading}
-              />
-            </label>
-            {iconValue && (
-              <img
-                src={getFullIconUrl(iconValue)}
-                alt="иконка"
-                style={{ width: "32px", height: "32px", objectFit: "contain" }}
-              />
+        <section className="form-section">
+          <h2 className="form-section__title">Основное</h2>
+          <div className="form-group">
+            <label className="label">Название *</label>
+            <input
+              {...register("name")}
+              className="input"
+              placeholder="VK, Rutube, YouTube..."
+            />
+            {errors.name && (
+              <p className="text-red mt-1">{errors.name.message}</p>
             )}
           </div>
-          <input type="hidden" {...register("icon")} />
-          <p
-            className="text-muted mt-1"
-            style={{ fontSize: "0.75rem", color: "#8e8e93" }}
-          >
-            {ALLOWED_IMAGE_HINT}
-          </p>
-        </div>
+
+          <div className="form-group">
+            <label className="label">Ссылка *</label>
+            <input
+              {...register("url")}
+              className="input"
+              placeholder="https://..."
+            />
+            {errors.url && (
+              <p className="text-red mt-1">{errors.url.message}</p>
+            )}
+            <p className="form-hint">
+              Полный URL страницы или канала, куда ведёт карточка на сайте
+            </p>
+          </div>
+        </section>
+
+        <section className="form-section">
+          <h2 className="form-section__title">Иконка</h2>
+          <div className="form-group">
+            <label className="label">Файл иконки</label>
+            <div className="flex items-center gap-4">
+              <label
+                className="btn btn-secondary"
+                style={{ cursor: "pointer", position: "relative" }}
+              >
+                <Upload size={16} />
+                {isUploading ? "Загрузка..." : "Выбрать файл"}
+                <input
+                  type="file"
+                  accept={ALLOWED_IMAGE_ACCEPT}
+                  onChange={handleFileChange}
+                  style={{ position: "absolute", opacity: 0, cursor: "pointer" }}
+                  disabled={isUploading}
+                />
+              </label>
+              {iconValue ? (
+                <>
+                  <img
+                    src={mediaUrl(iconValue)}
+                    alt="иконка"
+                    style={{
+                      width: 48,
+                      height: 48,
+                      objectFit: "contain",
+                      borderRadius: 8,
+                      background: "#f5f5f7",
+                      padding: 4,
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => setValue("icon", "", { shouldDirty: true })}
+                  >
+                    Убрать
+                  </button>
+                </>
+              ) : null}
+            </div>
+            <input type="hidden" {...register("icon")} />
+            <p className="form-hint">{ALLOWED_IMAGE_HINT}</p>
+          </div>
+        </section>
 
         <div className="flex gap-2">
           <button
@@ -194,7 +210,11 @@ export const SocialForm = ({
                 ? "Обновить"
                 : "Создать"}
           </button>
-          <button type="button" onClick={onCancel} className="btn btn-secondary">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="btn btn-secondary"
+          >
             Отмена
           </button>
         </div>

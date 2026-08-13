@@ -7,6 +7,9 @@ import { ExpertsListPage } from "./features/experts/pages/ExpertsListPage";
 import { ExpertCreatePage } from "./features/experts/pages/ExpertCreatePage";
 import { ExpertEditPage } from "./features/experts/pages/ExpertEditPage";
 import { SocialsPage } from "./features/socials/pages/SocialsPage";
+import { RubricsPage } from "./features/rubrics/pages/RubricsPage";
+import { SiteContentPage } from "./features/siteContent/pages/SiteContentPage";
+import { HelpGuidePage } from "./features/help/pages/HelpGuidePage";
 
 function App() {
   return (
@@ -21,11 +24,16 @@ function App() {
         }
       >
         <Route index element={<Navigate to="/webinars" replace />} />
+        <Route path="help" element={<HelpGuidePage />} />
         <Route path="webinars" element={<WebinarsListPage />} />
         <Route path="experts" element={<ExpertsListPage />} />
         <Route path="experts/create" element={<ExpertCreatePage />} />
         <Route path="experts/edit/:id" element={<ExpertEditPage />} />
         <Route path="socials" element={<SocialsPage />} />
+        <Route path="rubrics" element={<RubricsPage />} />
+        <Route path="site-content" element={<SiteContentPage />} />
+        <Route path="settings" element={<Navigate to="/site-content" replace />} />
+        <Route path="contacts" element={<Navigate to="/help" replace />} />
       </Route>
     </Routes>
   );

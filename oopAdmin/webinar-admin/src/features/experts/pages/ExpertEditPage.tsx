@@ -6,6 +6,8 @@ import {
 } from "../api/expertsApi";
 import { toast } from "sonner";
 import { ArrowLeft } from "lucide-react";
+import { ExpertFormData } from "../types";
+import { getApiErrorMessage } from "../../../shared/apiError";
 
 export const ExpertEditPage = () => {
   const navigate = useNavigate();
@@ -15,15 +17,14 @@ export const ExpertEditPage = () => {
   );
   const [updateExpert, { isLoading: isUpdating }] = useUpdateExpertMutation();
 
-  const handleSubmit = async (data: any) => {
+  const handleSubmit = async (data: ExpertFormData) => {
     if (!id) return;
     try {
       await updateExpert({ id, data }).unwrap();
       toast.success("Эксперт успешно обновлен");
       navigate("/experts");
-    } catch (error: any) {
-      console.error("Error:", error);
-      toast.error(error?.data?.message || "Ошибка при обновлении эксперта");
+    } catch (error: unknown) {
+      toast.error(getApiErrorMessage(error, "Ошибка при обновлении эксперта"));
     }
   };
 

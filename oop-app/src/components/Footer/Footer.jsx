@@ -1,10 +1,11 @@
 import styles from "./Footer.module.css";
 import { Link } from "react-router-dom";
-import { asset } from "../../utils/asset.js";
-
-const QUESTION_URL = "https://openedu.moscow/q";
+import { useSiteContent } from "../../hooks/useSiteContent.js";
+import { QUESTION_URL } from "../../constants/externalLinks.js";
 
 export default function Footer() {
+  const { content, logoPrimary, logoSecondary, navLinks } = useSiteContent();
+
   const handleNavClick = () => {
     window.scrollTo(0, 0);
   };
@@ -16,10 +17,19 @@ export default function Footer() {
           <div className={styles.footer__container}>
             <div className={styles.footer__top_top}>
               <div className={styles.footer__top}>
-                <div className={styles.logo__container}>
-                  <img className={styles.logo1} src={asset("/logo.svg")} alt="Logo" />
-                  <img className={styles.logo} src={asset("/logo1.svg")} alt="Logo 1" />
-                </div>
+                <Link
+                  to="/"
+                  className={styles.logo__container}
+                  onClick={handleNavClick}
+                  aria-label="На главную"
+                >
+                  <img className={styles.logo1} src={logoPrimary} alt="Logo" />
+                  <img
+                    className={styles.logo}
+                    src={logoSecondary}
+                    alt="Logo 1"
+                  />
+                </Link>
                 <div className={styles.footer.top_bot}>
                   <p className={styles.footer__text}>
                     Университет Правительства Москвы Проект «Открытое
@@ -28,33 +38,16 @@ export default function Footer() {
                 </div>
               </div>
               <nav className={styles.footer_nav}>
-                <Link className={styles.nav_color} to="/" onClick={handleNavClick}>
-                  Главная
-                </Link>
-                <Link
-                  className={styles.nav_color}
-                  to="/calendar"
-                  onClick={handleNavClick}
-                >
-                  Календарь событий
-                </Link>
-                <Link
-                  className={styles.nav_color}
-                  to="/webinars"
-                  onClick={handleNavClick}
-                >
-                  Все выпуски
-                </Link>
-                <Link
-                  className={styles.nav_color}
-                  to="/experts"
-                  onClick={handleNavClick}
-                >
-                  Наши эксперты
-                </Link>
-                <Link className={styles.nav_color} to="/about" onClick={handleNavClick}>
-                  О нас
-                </Link>
+                {navLinks.map((link) => (
+                  <Link
+                    key={link.to}
+                    className={styles.nav_color}
+                    to={link.to}
+                    onClick={handleNavClick}
+                  >
+                    {link.label}
+                  </Link>
+                ))}
               </nav>
               <div className={styles.footer__link}>
                 <div className={styles.footer__link_top}>
@@ -72,7 +65,7 @@ export default function Footer() {
                     rel="noopener noreferrer"
                     className={styles.footer__button}
                   >
-                    Задать вопрос
+                    {content.nav.question_cta}
                   </a>
                 </div>
               </div>

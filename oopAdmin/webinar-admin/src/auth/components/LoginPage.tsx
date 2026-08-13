@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Calendar, Users, Share2, LogIn } from "lucide-react";
+import { Calendar, Users, Share2, Tags, MessageSquare, Settings, LogIn } from "lucide-react";
 import { useLoginMutation } from "../api/authApi";
 import { useAppDispatch } from "../../app/hooks";
 import { setToken } from "../../app/store";
@@ -10,6 +10,9 @@ const menuItems = [
   { label: "Вебинары", icon: Calendar },
   { label: "Эксперты", icon: Users },
   { label: "Соцсети", icon: Share2 },
+  { label: "Рубрики", icon: Tags },
+  { label: "Обратная связь", icon: MessageSquare },
+  { label: "Настройки", icon: Settings },
 ];
 
 export const LoginPage = () => {
@@ -22,13 +25,34 @@ export const LoginPage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await login({ username, password }).unwrap();
+      const response = await login({
+        username: username.trim(),
+        password,
+      }).unwrap();
+
+      if (!response?.token) {
+        toast.error("Неверный логин или пароль");
+        return;
+      }
+
       dispatch(setToken(response.token));
-      localStorage.setItem("token", response.token);
       toast.success("Успешный вход!");
       navigate("/webinars");
-    } catch {
-      toast.error("Ошибка входа. Проверьте логин и пароль.");
+    } catch (error: unknown) {
+      const data =
+        error && typeof error === "object" && "data" in error
+          ? (error as { data?: unknown }).data
+          : undefined;
+
+      const message =
+        data &&
+        typeof data === "object" &&
+        "error" in data &&
+        typeof (data as { error?: unknown }).error === "string"
+          ? (data as { error: string }).error
+          : "Ошибка входа. Проверьте логин и пароль.";
+
+      toast.error(message);
     }
   };
 

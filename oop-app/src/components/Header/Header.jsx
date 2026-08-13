@@ -1,20 +1,26 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useLocation } from "react-router-dom";
 import styles from "./Header.module.css";
-import { asset } from "../../utils/asset.js";
+import { useSiteContent } from "../../hooks/useSiteContent.js";
+import { QUESTION_URL } from "../../constants/externalLinks.js";
 
-const QUESTION_URL = "https://openedu.moscow/q";
-
-const navLinks = [
-  { to: "/", label: "Главная" },
-  { to: "/calendar", label: "Календарь событий" },
-  { to: "/webinars", label: "Все выпуски" },
-  { to: "/experts", label: "Наши эксперты" },
-  { to: "/about", label: "О нас" },
-];
+const HERO_ROUTES = new Set(["/", "/about"]);
 
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(
+    () => typeof window !== "undefined" && window.scrollY > 8,
+  );
+  const { pathname } = useLocation();
+  const solidHeader = scrolled || menuOpen || !HERO_ROUTES.has(pathname);
+  const { content, logoPrimary, logoSecondary, navLinks } = useSiteContent();
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [pathname]);
 
   const handleNavClick = () => {
     window.scrollTo(0, 0);
@@ -22,13 +28,24 @@ export default function Header() {
   };
 
   return (
-    <div className={styles.container__header}>
+    <div
+      className={`${styles.container__header} ${
+        solidHeader
+          ? styles.container__header_solid
+          : styles.container__header_clear
+      }`}
+    >
       <div className="container">
         <div className={styles.header}>
-          <div className={styles.logo__container}>
-            <img className={styles.logo1} src={asset("/logo.svg")} alt="Logo" />
-            <img className={styles.logo} src={asset("/logo1.svg")} alt="Logo 1" />
-          </div>
+          <Link
+            to="/"
+            className={styles.logo__container}
+            onClick={handleNavClick}
+            aria-label="На главную"
+          >
+            <img className={styles.logo1} src={logoPrimary} alt="Logo" />
+            <img className={styles.logo} src={logoSecondary} alt="Logo 1" />
+          </Link>
 
           <nav className={styles.nav}>
             {navLinks.map((link) => (
@@ -49,7 +66,7 @@ export default function Header() {
             rel="noopener noreferrer"
             className={styles.questionBtn}
           >
-            Задай вопрос
+            {content.nav.question_cta}
           </a>
 
           <button
@@ -87,7 +104,7 @@ export default function Header() {
             className={styles.mobileNav__question}
             onClick={() => setMenuOpen(false)}
           >
-            Задай вопрос
+            {content.nav.question_cta}
           </a>
         </nav>
       </div>

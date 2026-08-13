@@ -3,15 +3,20 @@ import { authApi } from "../auth/api/authApi";
 import { webinarsApi } from "../features/webinars/api/webinarsApi";
 import { expertsApi } from "../features/experts/api/expertsApi";
 import { socialsApi } from "../features/socials/api/socialsApi";
+import { rubricsApi } from "../features/rubrics/api/rubricsApi";
+import { siteContentApi } from "../features/siteContent/api/siteContentApi";
+import { isValidToken, readStoredToken } from "../shared/baseQuery";
 
 interface AuthState {
   token: string | null;
   isAuthenticated: boolean;
 }
 
+const storedToken = readStoredToken();
+
 const initialState: AuthState = {
-  token: localStorage.getItem("token"),
-  isAuthenticated: !!localStorage.getItem("token"),
+  token: storedToken,
+  isAuthenticated: Boolean(storedToken),
 };
 
 const authSlice = createSlice({
@@ -19,8 +24,17 @@ const authSlice = createSlice({
   initialState,
   reducers: {
     setToken: (state, action: PayloadAction<string>) => {
-      state.token = action.payload;
+      if (!isValidToken(action.payload)) {
+        state.token = null;
+        state.isAuthenticated = false;
+        localStorage.removeItem("token");
+        return;
+      }
+
+      const token = action.payload.trim();
+      state.token = token;
       state.isAuthenticated = true;
+      localStorage.setItem("token", token);
     },
     logout: (state) => {
       state.token = null;
@@ -39,6 +53,8 @@ export const store = configureStore({
     [webinarsApi.reducerPath]: webinarsApi.reducer,
     [expertsApi.reducerPath]: expertsApi.reducer,
     [socialsApi.reducerPath]: socialsApi.reducer,
+    [rubricsApi.reducerPath]: rubricsApi.reducer,
+    [siteContentApi.reducerPath]: siteContentApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware().concat(
@@ -46,6 +62,8 @@ export const store = configureStore({
       webinarsApi.middleware,
       expertsApi.middleware,
       socialsApi.middleware,
+      rubricsApi.middleware,
+      siteContentApi.middleware,
     ),
 });
 

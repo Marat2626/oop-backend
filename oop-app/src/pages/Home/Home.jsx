@@ -1,53 +1,66 @@
 import styles from "./Main.module.css";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Navigation, Pagination, Autoplay } from "swiper/modules";
-import { useRef } from "react";
+import { useMemo, useRef, useState } from "react";
 import Social from "../../components/Social/Social.jsx";
+import WebinarModal from "../../components/WebinarModal/WebinarModal.jsx";
 import { asset } from "../../utils/asset.js";
 import { Link } from "react-router-dom";
 import { cnWow } from "../../utils/wow.js";
 import { useExperts } from "../../hooks/useExperts.js";
+import { usePastWebinars } from "../../hooks/usePastWebinars.js";
+import { useNextWebinar } from "../../hooks/useNextWebinar.js";
+import { QUESTION_URL } from "../../constants/externalLinks.js";
+import { useSiteContent } from "../../hooks/useSiteContent.js";
+import { toStreamEmbedUrl } from "../../utils/streamEmbed.js";
 
 import "swiper/css";
 import "swiper/css/navigation";
 import "swiper/css/pagination";
 
-const pastWebinars = [
-  {
-    id: 1,
-    image: asset("/image.jpg"),
-    duration: "32:40",
-    tag: "#Психология",
-    title: "Эмоциональный интеллект: зачем он нужен и как развивать",
-  },
-  {
-    id: 2,
-    image: asset("/image2.jpg"),
-    duration: "40:14",
-    tag: "#Личная эффективность",
-    title: "Публичные выступления: от страха к уверенности",
-  },
-  {
-    id: 3,
-    image: asset("/image3.jpg"),
-    duration: "25:18",
-    tag: "#Лидерство",
-    title: "Подкаст: Цифровая трансформация бизнеса",
-  },
-  {
-    id: 4,
-    image: asset("/image4.jpg"),
-    duration: "52:10",
-    tag: "#Личная эффективность",
-    title: "Как управлять своим временем: техники и инструменты",
-  },
-];
-
 export default function Main() {
+  const { content } = useSiteContent();
+  const brand = content.brand;
+  const hero = content.home_hero;
+  const wb = content.home_webinar;
+  const stats = content.stats;
+
   const { experts } = useExperts();
+  const pastLimit = wb.past_display === "featured_video" ? 24 : 4;
+  const { videos: pastWebinars } = usePastWebinars({ limit: pastLimit });
+  const { webinar: nextWebinar } = useNextWebinar();
+  const [selectedWebinar, setSelectedWebinar] = useState(null);
   const nextRef = useRef(null);
   const prevRef = useRef(null);
   const paginationRef = useRef(null);
+
+  const showNextBlock =
+    Boolean(nextWebinar) &&
+    (wb.mode === "force_next" || wb.mode === "auto");
+  const showPastBlock =
+    wb.mode === "force_past" ||
+    wb.mode === "auto" ||
+    (wb.mode === "force_next" && !nextWebinar);
+
+  const nextStreamUrl = (wb.stream_url || "").trim();
+  const nextEmbedUrl =
+    wb.media_mode === "stream" ? toStreamEmbedUrl(nextStreamUrl) : null;
+  const showNextStream =
+    wb.media_mode === "stream" && Boolean(nextStreamUrl);
+
+  const displayedPast = useMemo(() => {
+    if (wb.past_display === "featured_video") {
+      const featuredId = wb.featured_past_webinar_id;
+      if (featuredId != null) {
+        const found = pastWebinars.find(
+          (v) => String(v.id) === String(featuredId),
+        );
+        if (found) return [found];
+      }
+      return pastWebinars.slice(0, 1);
+    }
+    return pastWebinars.slice(0, 4);
+  }, [pastWebinars, wb.past_display, wb.featured_past_webinar_id]);
 
   const handleNavClick = () => {
     window.scrollTo(0, 0);
@@ -59,18 +72,21 @@ export default function Main() {
         <div className="container">
           <div className={styles.content}>
             <div className={styles.left__top}>
-              <p {...cnWow(styles.text__title, "fadeInLeft", { delay: "0.1s" })}>
-                ОТКРЫТОЕ
+              <p
+                {...cnWow(styles.text__title, "fadeInLeft", { delay: "0.1s" })}
+              >
+                {brand.title_line1}
               </p>
               <p {...cnWow(styles.text__red, "fadeInLeft", { delay: "0.2s" })}>
-                ОБРАЗОВАТЕЛЬНОЕ
+                {brand.title_line2}
               </p>
-              <p {...cnWow(styles.text__title, "fadeInLeft", { delay: "0.3s" })}>
-                ПРОСТРАНСТВО
+              <p
+                {...cnWow(styles.text__title, "fadeInLeft", { delay: "0.3s" })}
+              >
+                {brand.title_line3}
               </p>
               <p {...cnWow(styles.text, "fadeInLeft", { delay: "0.4s" })}>
-                Бесплатные вебинары и интервью с ведущими экспертами. ООП —
-                среда для саморазвития, доступная каждому.
+                {hero.subtitle}
               </p>
 
               <div
@@ -83,7 +99,7 @@ export default function Main() {
                   className={styles.button__osn}
                   onClick={handleNavClick}
                 >
-                  <p>Смотреть записи</p>
+                  <p>{hero.primary_cta}</p>
                   <img src={asset("/arrow.svg")} alt="" />
                 </Link>
                 <Link
@@ -91,7 +107,7 @@ export default function Main() {
                   className={styles.button__dop}
                   onClick={handleNavClick}
                 >
-                  Календарь событий
+                  {hero.secondary_cta}
                 </Link>
               </div>
             </div>
@@ -103,39 +119,40 @@ export default function Main() {
               })}
             >
               <img
+                className={styles.icon}
+                src={asset("/icon.svg")}
+                alt=""
+                aria-hidden="true"
+              />
+              <img
                 className={styles.micro__icon}
                 src={asset("/mikro.svg")}
                 alt=""
               />
-              <img className={styles.icon} src={asset("/icon.svg")} alt="" />
             </div>
           </div>
         </div>
       </div>
 
       <div className={styles.speed__string}>
-        <div className="container">
-          <p className={styles.text__speed}>
-            <span>
-              ВЕБИНАРЫ / ПОДСКАТЫ / ИНТЕРВЬЮ / КОНФЕРЕНЦИИ / БЕСПЛАТНО / ОНЛАЙН
-            </span>
-            <span className={styles.gap}></span>
-            <span>
-              ВЕБИНАРЫ / ПОДСКАТЫ / ИНТЕРВЬЮ / КОНФЕРЕНЦИИ / БЕСПЛАТНО / ОНЛАЙН
-            </span>
-            <span className={styles.gap}></span>
-            <span>
-              ВЕБИНАРЫ / ПОДСКАТЫ / ИНТЕРВЬЮ / КОНФЕРЕНЦИИ / БЕСПЛАТНО / ОНЛАЙН
-            </span>
-          </p>
+        <div className={styles.speed__track}>
+          <span className={styles.text__speed}>
+            ВЕБИНАРЫ / ПОДКАСТЫ / ИНТЕРВЬЮ / КОНФЕРЕНЦИИ / БЕСПЛАТНО / ОНЛАЙН
+          </span>
+          <span className={styles.gap} aria-hidden="true" />
+          <span className={styles.text__speed} aria-hidden="true">
+            ВЕБИНАРЫ / ПОДКАСТЫ / ИНТЕРВЬЮ / КОНФЕРЕНЦИИ / БЕСПЛАТНО / ОНЛАЙН
+          </span>
+          <span className={styles.gap} aria-hidden="true" />
         </div>
       </div>
 
+      {showNextBlock ? (
       <div className={styles.webinar__container}>
         <div className="container">
           <div className={styles.webinar__top}>
             <p {...cnWow(styles.webinar__title, "fadeInUp")}>
-              Ближайший вебинар
+              {wb.next_title}
             </p>
             <div
               {...cnWow(
@@ -149,7 +166,7 @@ export default function Main() {
                 className={styles.webinar__header__text}
                 onClick={handleNavClick}
               >
-                Все мероприятия
+                {wb.next_link_label}
               </Link>
               <img
                 className={styles.webinar__header__img}
@@ -159,83 +176,123 @@ export default function Main() {
             </div>
           </div>
 
-          <div
-            {...cnWow(styles.webinar__bot, "fadeInUp", {
-              delay: "0.1s",
-              duration: "0.9s",
-            })}
-          >
+          {nextWebinar && (
             <div
-              {...cnWow(styles.container__img, "fadeInLeft", {
-                delay: "0.2s",
+              {...cnWow(styles.webinar__bot, "fadeInUp", {
+                delay: "0.1s",
+                duration: "0.9s",
               })}
             >
-              <img src={asset("/q.jpg")} alt="Вебинар" />
-            </div>
-
-            <div
-              {...cnWow(styles.info__container, "fadeInRight", {
-                delay: "0.25s",
-              })}
-            >
-              <div className={styles.container__top}>
-                <div className={styles.info}>
-                  <div className={styles.container__time}>
-                    <img
-                      className={styles.container__time__img}
-                      src={asset("/Clock.svg")}
-                      alt=""
-                    />
-                    <p className={styles.text__time}>18:00 МСК</p>
-                  </div>
-                  <div className={styles.container__time}>
-                    <img src={asset("/Calendar.svg")} alt="" />
-                    <p className={styles.text__time}>5 апреля 2026</p>
-                  </div>
-                  <div className={styles.container__time}>
-                    <p className={styles.text__time}>#Коммуникация</p>
-                  </div>
-                </div>
-                <div className={styles.container__text}>
-                  <p className={styles.container__text__category}>
-                    «Язык доверия: как государству общаться с гражданами».
-                  </p>
-                </div>
+              <div
+                {...cnWow(styles.container__img, "fadeInLeft", {
+                  delay: "0.2s",
+                })}
+              >
+                {showNextStream && nextEmbedUrl ? (
+                  <iframe
+                    className={styles.container__stream}
+                    src={nextEmbedUrl}
+                    title={nextWebinar.title || "Онлайн-эфир"}
+                    allow="autoplay; encrypted-media; fullscreen; picture-in-picture; screen-wake-lock;"
+                    allowFullScreen
+                    loading="lazy"
+                    referrerPolicy="strict-origin-when-cross-origin"
+                  />
+                ) : showNextStream ? (
+                  <a
+                    href={nextStreamUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={styles.container__stream_link}
+                  >
+                    <img src={nextWebinar.image} alt="Онлайн-эфир" />
+                    <span className={styles.container__stream_badge}>
+                      Смотреть эфир
+                    </span>
+                  </a>
+                ) : (
+                  <img src={nextWebinar.image} alt="Вебинар" />
+                )}
               </div>
 
-              <div className={styles.button__conteiner}>
-                <div className={styles.container__bot}>
-                  <div className={styles.info__speacker}>
-                    <div className={styles.speacker}>
-                      <img
-                        className={styles.container__img__speacer}
-                        src={asset("/q1.png")}
-                        alt="Спикер"
-                      />
-                    </div>
+              <div
+                {...cnWow(styles.info__container, "fadeInRight", {
+                  delay: "0.25s",
+                })}
+              >
+                <div className={styles.container__top}>
+                  <div className={styles.info}>
+                    {nextWebinar.date && (
+                      <div className={styles.container__time}>
+                        <img src={asset("/Calendar.svg")} alt="" />
+                        <p className={styles.text__time}>{nextWebinar.date}</p>
+                      </div>
+                    )}
+                    {nextWebinar.time && (
+                      <div className={styles.container__time}>
+                        <img
+                          className={styles.container__time__img}
+                          src={asset("/Clock.svg")}
+                          alt=""
+                        />
+                        <p className={styles.text__time}>{nextWebinar.time}</p>
+                      </div>
+                    )}
+                    {nextWebinar.tag && (
+                      <div className={styles.container__time}>
+                        <p className={styles.text__time}>{nextWebinar.tag}</p>
+                      </div>
+                    )}
                   </div>
-                  <div className={styles.speacker__info}>
-                    <p className={styles.speacker__title}>Анна Иванова</p>
-                    <p className={styles.speacker__text}>
-                      Руководитель проекта «Центр понятного языка», директор
-                      программ ВШГУ РАНХиГС и автор книги «Министерство доверия.
-                      Как государству общаться с гражданами».
+                  <div className={styles.container__text}>
+                    <p className={styles.container__text__category}>
+                      {nextWebinar.title}
                     </p>
                   </div>
                 </div>
-                <div className={styles.bu}>
-                  <Link
-                    to="/webinars"
-                    className={styles.button__osn}
-                    onClick={handleNavClick}
-                  >
-                    <p>Смотреть записи</p>
-                    <img src={asset("/arrow.svg")} alt="" />
-                  </Link>
+
+                <div className={styles.button__conteiner}>
+                  {nextWebinar.expert && (
+                    <div className={styles.container__bot}>
+                      {nextWebinar.expert.photo && (
+                        <div className={styles.info__speacker}>
+                          <div className={styles.speacker}>
+                            <img
+                              className={styles.container__img__speacer}
+                              src={nextWebinar.expert.photo}
+                              alt={nextWebinar.expert.name}
+                            />
+                          </div>
+                        </div>
+                      )}
+                      <div className={styles.speacker__info}>
+                        {nextWebinar.expert.name && (
+                          <p className={styles.speacker__title}>
+                            {nextWebinar.expert.name}
+                          </p>
+                        )}
+                        {nextWebinar.expert.description && (
+                          <p className={styles.speacker__text}>
+                            {nextWebinar.expert.description}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  <div className={styles.bu}>
+                    <Link
+                      to="/webinars"
+                      className={styles.button__osn}
+                      onClick={handleNavClick}
+                    >
+                      <p>{hero.primary_cta}</p>
+                      <img src={asset("/arrow.svg")} alt="" />
+                    </Link>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          )}
 
           <div
             {...cnWow(
@@ -249,7 +306,7 @@ export default function Main() {
               className={styles.webinar__header__text}
               onClick={handleNavClick}
             >
-              Все мероприятия
+              {wb.next_link_label}
             </Link>
             <img
               className={styles.webinar__header__img}
@@ -259,11 +316,13 @@ export default function Main() {
           </div>
         </div>
       </div>
+      ) : null}
 
+      {showPastBlock ? (
       <div className={styles.webinras__video}>
         <div className="container">
           <div className={styles.webinar__top}>
-            <p {...cnWow(styles.text_t, "fadeInUp")}>Прошедшие вебинары</p>
+            <p {...cnWow(styles.text_t, "fadeInUp")}>{wb.past_title}</p>
             <div
               {...cnWow(
                 `${styles.webinar__right} ${styles.webinar__right_desktop}`,
@@ -276,7 +335,7 @@ export default function Main() {
                 className={styles.webinar__header__text}
                 onClick={handleNavClick}
               >
-                Все выпуски
+                {wb.past_link_label}
               </Link>
               <img
                 className={styles.webinar__header__img}
@@ -286,13 +345,22 @@ export default function Main() {
             </div>
           </div>
 
-          <div className={styles.video__grid}>
-            {pastWebinars.map((video, index) => (
-              <div
+          <div
+            className={styles.video__grid}
+            style={
+              wb.past_display === "featured_video"
+                ? { gridTemplateColumns: "1fr", maxWidth: 640 }
+                : undefined
+            }
+          >
+            {displayedPast.map((video, index) => (
+              <button
+                type="button"
                 key={video.id}
                 {...cnWow(styles.video__card, "fadeInUp", {
                   delay: `${0.1 + index * 0.1}s`,
                 })}
+                onClick={() => setSelectedWebinar(video.modal)}
               >
                 <img
                   className={styles.video__image}
@@ -300,7 +368,7 @@ export default function Main() {
                   alt="Видео"
                 />
                 <div className={styles.video__duration}>
-                  <img src={asset("/polugon.svg")} alt="Play" />
+                  <img src={asset("/polugon.svg")} alt="" />
                   <span>{video.duration}</span>
                 </div>
                 <div className={styles.video__info}>
@@ -309,7 +377,7 @@ export default function Main() {
                   </div>
                   <h3 className={styles.video__title}>{video.title}</h3>
                 </div>
-              </div>
+              </button>
             ))}
           </div>
 
@@ -325,7 +393,7 @@ export default function Main() {
               className={styles.webinar__header__text}
               onClick={handleNavClick}
             >
-              Все выпуски
+              {wb.past_link_label}
             </Link>
             <img
               className={styles.webinar__header__img}
@@ -335,12 +403,16 @@ export default function Main() {
           </div>
         </div>
       </div>
+      ) : null}
 
       <div className={styles.expert__container}>
         <div className="container">
           <div className={styles.expetr__top}>
             <p {...cnWow(styles.text_t, "fadeInUp")}>Наши эксперты</p>
-            <button
+            <a
+              href={QUESTION_URL}
+              target="_blank"
+              rel="noopener noreferrer"
               {...cnWow(
                 `${styles.button__osn1} ${styles.expert__btn_desktop}`,
                 "fadeInLeft",
@@ -349,7 +421,7 @@ export default function Main() {
             >
               <p>Стать экспертом</p>
               <img src={asset("/arrow.svg")} alt="" />
-            </button>
+            </a>
           </div>
 
           <div
@@ -367,7 +439,10 @@ export default function Main() {
                 Спикеры и практики из разных сфер: управления, психологии,
                 коммуникаций, бизнеса и цифровой среды.{" "}
               </h2>
-              <button
+              <a
+                href={QUESTION_URL}
+                target="_blank"
+                rel="noopener noreferrer"
                 {...cnWow(
                   `${styles.button__osn1} ${styles.expert__btn_mobile}`,
                   "fadeInUp",
@@ -376,10 +451,8 @@ export default function Main() {
               >
                 <p>Стать экспертом</p>
                 <img src={asset("/arrow.svg")} alt="" />
-              </button>
-              <div
-                {...cnWow(styles.expert__nav, "fadeIn", { delay: "0.25s" })}
-              >
+              </a>
+              <div {...cnWow(styles.expert__nav, "fadeIn", { delay: "0.25s" })}>
                 <p ref={prevRef} className={styles.swiper__prev}>
                   <img src={asset("/Arrow2.svg")} alt="Prev" />
                 </p>
@@ -399,8 +472,8 @@ export default function Main() {
                 disableOnInteraction: false,
               }}
               breakpoints={{
-                0: { slidesPerView: 1.12, spaceBetween: 16 },
-                640: { slidesPerView: 1.2, spaceBetween: 20 },
+                0: { slidesPerView: "auto", spaceBetween: 14 },
+                640: { slidesPerView: "auto", spaceBetween: 18 },
                 768: { slidesPerView: 2, spaceBetween: 24 },
                 1024: { slidesPerView: 3, spaceBetween: 30 },
                 1280: { slidesPerView: 4, spaceBetween: 30 },
@@ -423,21 +496,42 @@ export default function Main() {
                       <img src={expert.photo} alt={expert.name} />
                       <div className={styles.expert__overlay}>
                         <p className={styles.expert__name}>{expert.name}</p>
-                        <p className={styles.expert__role}>{expert.role}</p>
-                        <p className={styles.expert__description}>
-                          {expert.description}
-                        </p>
+                        {expert.organization && (
+                          <p className={styles.expert__role}>
+                            {expert.organization}
+                          </p>
+                        )}
+                        {expert.role && (
+                          <p className={styles.expert__description}>
+                            {expert.role}
+                          </p>
+                        )}
                       </div>
                     </div>
 
                     <div className={styles.expert__footer}>
                       <div className={styles.expert__buttons}>
-                        <button className={styles.btn__webinar}>
+                        <button
+                          type="button"
+                          className={styles.btn__webinar}
+                          disabled={!expert.modal}
+                          onClick={() => {
+                            if (expert.modal) setSelectedWebinar(expert.modal);
+                          }}
+                        >
                           {expert.buttonText}
                         </button>
-                        <p className={styles.btn__arr}>
-                          <img src={asset("/arrow.svg")} alt="стрелка" />
-                        </p>
+                        <button
+                          type="button"
+                          className={styles.btn__arr}
+                          aria-label="Открыть вебинар"
+                          disabled={!expert.modal}
+                          onClick={() => {
+                            if (expert.modal) setSelectedWebinar(expert.modal);
+                          }}
+                        >
+                          <img src={asset("/arrow.svg")} alt="" />
+                        </button>
                       </div>
                       <p className={styles.expert__text}>{expert.footerText}</p>
                     </div>
@@ -459,14 +553,24 @@ export default function Main() {
           <div className={styles.cool__content}>
             <div className={styles.cool__content__top}>
               <div className={styles.cool__left__top}>
-                <p {...cnWow(styles.text__title, "fadeInLeft", { delay: "0.1s" })}>
-                  ОТКРЫТОЕ
+                <p
+                  {...cnWow(styles.text__title, "fadeInLeft", {
+                    delay: "0.1s",
+                  })}
+                >
+                  {brand.title_line1}
                 </p>
-                <p {...cnWow(styles.text__red, "fadeInLeft", { delay: "0.2s" })}>
-                  ОБРАЗОВАТЕЛЬНОЕ
+                <p
+                  {...cnWow(styles.text__red, "fadeInLeft", { delay: "0.2s" })}
+                >
+                  {brand.title_line2}
                 </p>
-                <p {...cnWow(styles.text__title, "fadeInLeft", { delay: "0.3s" })}>
-                  ПРОСТРАНСТВО
+                <p
+                  {...cnWow(styles.text__title, "fadeInLeft", {
+                    delay: "0.3s",
+                  })}
+                >
+                  {brand.title_line3}
                 </p>
               </div>
               <div
@@ -508,8 +612,12 @@ export default function Main() {
                   />
                 </div>
                 <div>
-                  <p className={styles.cool__text__info}>600+ </p>
-                  <p className={styles.cool__text__infD}>вебинаров</p>
+                  <p className={styles.cool__text__info}>
+                    {stats.webinars_value}{" "}
+                  </p>
+                  <p className={styles.cool__text__infD}>
+                    {stats.webinars_label}
+                  </p>
                 </div>
               </div>
               <div
@@ -525,8 +633,12 @@ export default function Main() {
                   />
                 </div>
                 <div>
-                  <p className={styles.cool__text__info}>100 000+ </p>
-                  <p className={styles.cool__text__infD}>слушателей</p>
+                  <p className={styles.cool__text__info}>
+                    {stats.listeners_value}{" "}
+                  </p>
+                  <p className={styles.cool__text__infD}>
+                    {stats.listeners_label}
+                  </p>
                 </div>
                 <div>
                   <img
@@ -549,8 +661,8 @@ export default function Main() {
                   />
                 </div>
                 <div>
-                  <p className={styles.cool__text__info}>20+</p>
-                  <p className={styles.cool__text__infD}>тематик</p>
+                  <p className={styles.cool__text__info}>{stats.topics_value}</p>
+                  <p className={styles.cool__text__infD}>{stats.topics_label}</p>
                 </div>
               </div>
             </div>
@@ -559,6 +671,12 @@ export default function Main() {
       </div>
 
       <Social />
+
+      <WebinarModal
+        webinar={selectedWebinar}
+        isPast={selectedWebinar?.isPast !== false}
+        onClose={() => setSelectedWebinar(null)}
+      />
     </div>
   );
 }

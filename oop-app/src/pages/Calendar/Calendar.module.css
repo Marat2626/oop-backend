@@ -136,23 +136,17 @@
   font-weight: 500;
 }
 
-.dayActive .dot {
-  background: #ffffff;
-}
-
 .daySoft {
   background: #f7f6ff;
 }
 
-.dot {
-  position: absolute;
-  left: 50%;
-  bottom: clamp(4px, 1.2vw, 10px);
-  transform: translateX(-50%);
-  width: 6px;
-  height: 6px;
+.dayHasEvent {
+  border: 2px solid #a486e3;
   border-radius: 50%;
-  background: #a486e3;
+}
+
+.dayActive.dayHasEvent {
+  border-color: #ffffff;
 }
 
 .event__side {
@@ -403,10 +397,8 @@
     min-height: 40px;
   }
 
-  .dot {
-    width: 5px;
-    height: 5px;
-    bottom: 5px;
+  .dayHasEvent {
+    border-radius: 50%;
   }
 
   .event__title {

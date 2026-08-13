@@ -3,21 +3,24 @@ import { Outlet } from "react-router-dom";
 import Header from "../Header/Header";
 import Footer from "../Footer/Footer";
 import WowInit from "../WowInit/WowInit";
+import { SiteContentProvider } from "../../hooks/useSiteContent.js";
 import styles from "./MainLayout.module.css";
 
 export default function MainLayout() {
   return (
-    <div className={styles.layout}>
-      <WowInit />
-      <main className={styles.layout__main}>
-        <div className={styles.layout__content}>
-          <Header />
-          <div className={styles.layout__outlet}>
-            <Outlet />
+    <SiteContentProvider>
+      <div className={styles.layout}>
+        <WowInit />
+        <main className={styles.layout__main}>
+          <div className={styles.layout__content}>
+            <Header />
+            <div className={styles.layout__outlet}>
+              <Outlet />
+            </div>
           </div>
-        </div>
-      </main>
-      <Footer />
-    </div>
+        </main>
+        <Footer />
+      </div>
+    </SiteContentProvider>
   );
 }

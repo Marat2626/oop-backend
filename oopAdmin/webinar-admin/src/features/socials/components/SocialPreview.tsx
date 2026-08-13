@@ -1,6 +1,7 @@
 import { X } from "lucide-react";
 import { SocialFormData } from "../types";
 import "./SocialPreview.css";
+import { mediaUrl } from "../../../shared/baseQuery";
 
 interface SocialPreviewProps {
   isOpen: boolean;
@@ -8,15 +9,7 @@ interface SocialPreviewProps {
   data: SocialFormData;
 }
 
-const API_BASE_URL = "https://oop-backend-1.onrender.com";
-
-const getFullIconUrl = (iconUrl: string) => {
-  if (!iconUrl) return "";
-  if (iconUrl.startsWith("/uploads")) {
-    return `${API_BASE_URL}${iconUrl}`;
-  }
-  return iconUrl;
-};
+const getFullIconUrl = (iconUrl: string) => mediaUrl(iconUrl);
 
 export const SocialPreview = ({
   isOpen,

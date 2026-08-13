@@ -1,13 +1,26 @@
 import { useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { Calendar, Users, Share2, Menu, X, LogOut } from "lucide-react";
+import {
+  Calendar,
+  Users,
+  Share2,
+  Tags,
+  Settings,
+  BookOpen,
+  Menu,
+  X,
+  LogOut,
+} from "lucide-react";
 import { useAppDispatch } from "../app/hooks";
 import { logout } from "../app/store";
 
 const menuItems = [
+  { path: "/help", label: "Инструкция", icon: BookOpen },
   { path: "/webinars", label: "Вебинары", icon: Calendar },
   { path: "/experts", label: "Эксперты", icon: Users },
   { path: "/socials", label: "Соцсети", icon: Share2 },
+  { path: "/rubrics", label: "Рубрики", icon: Tags },
+  { path: "/site-content", label: "Контент сайта", icon: Settings },
 ];
 
 export const AdminLayout = () => {
@@ -59,7 +72,6 @@ export const AdminLayout = () => {
             );
           })}
 
-          {/* Кнопка выхода */}
           <div style={{ marginTop: "auto", marginBottom: "2rem" }}>
             <button
               onClick={handleLogout}
