@@ -12,4 +12,6 @@ pydantic-settings
 email-validator
 python-multipart
 icalendar
-requests
+requestsslowapi==0.1.9
+
+slowapi==0.1.9

@@ -1,3 +1,4 @@
+import subprocess
 import os
 from fastapi import FastAPI
 from dotenv import load_dotenv
@@ -25,6 +26,16 @@ app = FastAPI(
     title="Открытое образовательное пространство",
     max_request_body_size=2 * 1024 * 1024  # 2 MB
 )
+
+@app.on_event("startup")
+def startup_event():
+    """Запуск миграций при старте сервера"""
+    try:
+        subprocess.run(["alembic", "upgrade", "head"], check=True)
+        print(" Миграции успешно применены")
+    except subprocess.CalledProcessError as e:
+        print(f" Ошибка при применении миграций: {e}")
+
 
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
