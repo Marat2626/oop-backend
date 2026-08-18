@@ -66,3 +66,4 @@ def shutdown_event():
     """Закрываем соединения с БД при остановке сервера"""
     from database.database import engine
     engine.dispose()
+
