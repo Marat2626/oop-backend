@@ -4,9 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="4c2d253b-839a-42bd-b4f2-3284cdd54127" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/oop-backend/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/oop-backend/requirements.txt" afterDir="false" />
-    </list>
+    <list default="true" id="4c2d253b-839a-42bd-b4f2-3284cdd54127" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
