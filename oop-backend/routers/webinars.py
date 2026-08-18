@@ -1,5 +1,6 @@
-from datetime import datetime
+from datetime import datetime, timezone
 import json
+import logging  # ← ДОБАВЛЕНО
 from fastapi import HTTPException, Query
 from typing import Optional, List
 
@@ -9,6 +10,12 @@ from pydantic import BaseModel, field_validator
 from fastapi import Depends
 from routers.auth import get_admin_token
 from database.database import get_db
+
+
+from fastapi import Request
+from middleware.rate_limit import limiter, PUBLIC_LIMIT, ADMIN_LIMIT
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(
     tags=["Вебинары"],
@@ -172,7 +179,8 @@ def serialize_webinar(webinar: WebinarDB, db) -> dict:
     summary="Создать вебинар",
     description="Требуется токен администратора в заголовке 'token'"
 )
-def create_webinar(webinar: Webinar, admin: str = Depends(get_admin_token), db = Depends(get_db)):
+@limiter.limit(ADMIN_LIMIT)
+def create_webinar( request: Request, webinar: Webinar, admin: str = Depends(get_admin_token), db = Depends(get_db)):
 
     new_webinar = WebinarDB(
         title=webinar.title,
@@ -189,43 +197,59 @@ def create_webinar(webinar: Webinar, admin: str = Depends(get_admin_token), db =
         is_published=webinar.is_published,
         photo=webinar.photo
     )
-    db.add(new_webinar)
-    db.commit()
-    db.refresh(new_webinar)
+    if webinar.rubric_ids:
+        existing_ids = {r[0] for r in db.query(RubricsDB.id).all()}
+        invalid_ids = set(webinar.rubric_ids) - existing_ids
+        if invalid_ids:
+            raise HTTPException(status_code=400, detail=f"Рубрики с ID {invalid_ids} не найдены")
 
-    for rubric_id in webinar.rubric_ids:
-        link = WebinarRubricDB(webinar_id=new_webinar.id, rubric_id=rubric_id)
-        db.add(link)
-    db.commit()
-    db.refresh(new_webinar)
-    return serialize_webinar(new_webinar, db)
+    try:
+        db.add(new_webinar)
+        db.commit()
+        db.refresh(new_webinar)
+
+        for rubric_id in webinar.rubric_ids:
+            link = WebinarRubricDB(webinar_id=new_webinar.id, rubric_id=rubric_id)
+            db.add(link)
+        db.commit()
+        db.refresh(new_webinar)
+        return serialize_webinar(new_webinar, db)
+    except Exception as e:  # ← ИЗМЕНЕНО: добавил 'as e'
+        db.rollback()
+        logger.error(f"Ошибка при создании вебинара: {e}", exc_info=True)  # ← ИЗМЕНЕНО: print → logger.error
+        raise HTTPException(status_code=500, detail=f"Ошибка: {str(e)}")
 
 
 @router.get(
     path="/admin/webinar/all",
-    summary= "Просмотр вебинара",
+    summary="Просмотр вебинара",
 )
-def get_all_webinar( db = Depends(get_db)):
+@limiter.limit(PUBLIC_LIMIT)
+def get_all_webinar(request: Request,db = Depends(get_db)):
     webinars = db.query(WebinarDB).all()
     items = [serialize_webinar(item, db) for item in webinars]
     return {"items": items, "total": len(items)}
+
 
 @router.get(
     path="/admin/webinar/{webinar_id}",
     summary="Просмотр вебинара по id",
 )
-def get_webinar(webinar_id: int, db = Depends(get_db)):
+@limiter.limit(PUBLIC_LIMIT)
+def get_webinar(request: Request,webinar_id: int, db = Depends(get_db)):
     webinar = db.query(WebinarDB).get(webinar_id)
     if webinar is None:
         raise HTTPException(status_code=404, detail="Вебинар не найден")
     return serialize_webinar(webinar, db)
+
 
 @router.patch(
     path="/admin/webinar/update/{webinar_id}",
     summary="Обновление вебинара по id",
     description="Требуется токен администратора в заголовке 'token'"
 )
-def update_webinar(updateWebinar: UpdateWebinar, webinar_id: int, admin: str = Depends(get_admin_token), db = Depends(get_db)):
+@limiter.limit(ADMIN_LIMIT)
+def update_webinar(request: Request,updateWebinar: UpdateWebinar, webinar_id: int, admin: str = Depends(get_admin_token), db = Depends(get_db)):
 
     webinar = db.query(WebinarDB).get(webinar_id)
 
@@ -242,6 +266,11 @@ def update_webinar(updateWebinar: UpdateWebinar, webinar_id: int, admin: str = D
         webinar.start_time = updateWebinar.start_time
 
     if updateWebinar.rubric_ids is not None:
+        if updateWebinar.rubric_ids:
+            existing_ids = {r[0] for r in db.query(RubricsDB.id).all()}
+            invalid_ids = set(updateWebinar.rubric_ids) - existing_ids
+            if invalid_ids:
+                raise HTTPException(status_code=400, detail=f"Рубрики с ID {invalid_ids} не найдены")
         db.query(WebinarRubricDB).filter(WebinarRubricDB.webinar_id == webinar.id).delete()
         for rubric_id in updateWebinar.rubric_ids:
             db.add(WebinarRubricDB(webinar_id=webinar.id, rubric_id=rubric_id))
@@ -277,34 +306,46 @@ def update_webinar(updateWebinar: UpdateWebinar, webinar_id: int, admin: str = D
     if "preview" in updateWebinar.model_fields_set:
         webinar.preview = updateWebinar.preview
 
-    db.commit()
-    db.refresh(webinar)
-    return serialize_webinar(webinar, db)
+    try:
+        db.commit()
+        db.refresh(webinar)
+        return serialize_webinar(webinar, db)
+    except Exception as e:  # ← ИЗМЕНЕНО: добавил 'as e'
+        db.rollback()
+        logger.error(f"Ошибка при обновлении вебинара: {e}", exc_info=True)  # ← ИЗМЕНЕНО: добавил логирование
+        raise HTTPException(status_code=500, detail="Ошибка при обновлении вебинара")
+
 
 @router.delete(
     path="/admin/webinar/delete/{webinar_id}",
     summary="Удаление вебинара по id",
     description="Требуется токен администратора в заголовке 'token'"
 )
-def delete_webinar(webinar_id: int, admin: str = Depends(get_admin_token), db = Depends(get_db)):
+@limiter.limit(ADMIN_LIMIT)
+def delete_webinar(request: Request,webinar_id: int, admin: str = Depends(get_admin_token), db = Depends(get_db)):
 
     webinar = db.query(WebinarDB).get(webinar_id)
 
     if webinar is None:
         raise HTTPException(status_code=404, detail="Вебинар не найден")
-
-    db.query(WebinarRubricDB).filter(WebinarRubricDB.webinar_id == webinar_id).delete()
-    db.delete(webinar)
-    db.commit()
-    return {"message": "Вебинар удален"}
-
+    try:
+        db.query(WebinarRubricDB).filter(WebinarRubricDB.webinar_id == webinar_id).delete()
+        db.delete(webinar)
+        db.commit()
+        return {"message": "Вебинар удален"}
+    except Exception as e:  # ← ИЗМЕНЕНО: добавил 'as e'
+        db.rollback()
+        logger.error(f"Ошибка при удалении вебинара: {e}", exc_info=True)  # ← ИЗМЕНЕНО: добавил логирование
+        raise HTTPException(status_code=500, detail="Ошибка при удалении вебинара")
 
 
 @router.get("/public/next-webinar", summary="Ближайший вебинар")
-def get_next_webinar(db=Depends(get_db)):
+@limiter.limit(PUBLIC_LIMIT)
+def get_next_webinar(request: Request,db=Depends(get_db)):
+    now = datetime.now(timezone.utc)  # ✅ ТЕПЕРЬ UTC
     webinar = (
         db.query(WebinarDB)
-        .filter(WebinarDB.is_published == True, WebinarDB.start_time >= datetime.now())
+        .filter(WebinarDB.is_published == True, WebinarDB.start_time >= now)
         .order_by(WebinarDB.start_time)
         .first()
     )
@@ -313,8 +354,24 @@ def get_next_webinar(db=Depends(get_db)):
     return serialize_webinar(webinar, db)
 
 
+@router.get("/public/videos", summary="Архив прошедших")
+@limiter.limit(PUBLIC_LIMIT)
+def get_past_webinars(request: Request,db=Depends(get_db)):
+    now = datetime.now(timezone.utc)  # ✅ ТЕПЕРЬ UTC
+    webinars = (
+        db.query(WebinarDB)
+        .filter(WebinarDB.is_published == True, WebinarDB.start_time < now)
+        .order_by(WebinarDB.start_time.desc())
+        .all()
+    )
+    items = [serialize_webinar(item, db) for item in webinars]
+    return {"items": items, "total": len(items)}
+
+
 @router.get("/public/webinars", summary="Вебинары с фильтрацией и поиском")
+@limiter.limit(PUBLIC_LIMIT)
 def get_webinars(
+    request: Request,
     rubric_id: int = Query(None),
     search: str = Query(None),
     page: int = Query(1, ge=1),
@@ -343,15 +400,3 @@ def get_webinars(
         "page": page,
         "pages": (total + limit - 1) // limit
     }
-
-
-@router.get("/public/videos", summary="Архив прошедших")
-def get_past_webinars(db=Depends(get_db)):
-    webinars = (
-        db.query(WebinarDB)
-        .filter(WebinarDB.is_published == True, WebinarDB.start_time < datetime.now())
-        .order_by(WebinarDB.start_time.desc())
-        .all()
-    )
-    items = [serialize_webinar(item, db) for item in webinars]
-    return {"items": items, "total": len(items)}

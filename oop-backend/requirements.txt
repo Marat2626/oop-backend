@@ -1,5 +1,6 @@
 fastapi
 uvicorn
+gunicorn
 python-dotenv
 alembic
 sqlalchemy
@@ -7,5 +8,8 @@ psycopg2-binary
 python-jose[cryptography]
 passlib[bcrypt]
 pydantic
+pydantic-settings
+email-validator
 python-multipart
+icalendar
 requests
