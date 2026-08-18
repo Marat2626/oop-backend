@@ -1,0 +1,72 @@
+{
+  "webinars": [
+    {
+      "id": "1",
+      "title": "Как построить личный бренд эксперта",
+      "date": "2025-03-15",
+      "time": "18:00",
+      "category": "Маркетинг",
+      "mainPhoto": "https://picsum.photos/id/1/400/300",
+      "previewPhoto": "https://picsum.photos/id/1/200/150",
+      "expertId": "1"
+    },
+    {
+      "id": "2",
+      "title": "Государство и бизнес: новые правила",
+      "date": "2025-03-20",
+      "time": "19:00",
+      "category": "Гос управление",
+      "mainPhoto": "https://picsum.photos/id/2/400/300",
+      "previewPhoto": "https://picsum.photos/id/2/200/150",
+      "expertId": "2"
+    },
+    {
+      "id": "3",
+      "title": "Эффективные коммуникации в госсекторе",
+      "date": "2025-03-25",
+      "time": "17:00",
+      "category": "Коммуникации",
+      "mainPhoto": "https://picsum.photos/id/3/400/300",
+      "previewPhoto": "https://picsum.photos/id/3/200/150",
+      "expertId": "2"
+    }
+  ],
+  "experts": [
+    {
+      "id": "1",
+      "fullName": "Юлия Андреева",
+      "photo": "https://randomuser.me/api/portraits/women/1.jpg",
+      "description1": "Счётная палата РФ",
+      "description2": "Директор программ ВШГУ РАНХиГС",
+      "description3": "Язык доверия: как государству общаться с гражданами"
+    },
+    {
+      "id": "2",
+      "fullName": "Алексей Смирнов",
+      "photo": "https://randomuser.me/api/portraits/men/2.jpg",
+      "description1": "МИД России",
+      "description2": "Эксперт по цифровой дипломатии",
+      "description3": "Дипломатия 2.0: вызовы и возможности"
+    }
+  ],
+  "socials": [
+    {
+      "id": "1",
+      "name": "Telegram",
+      "url": "https://t.me/yourchannel",
+      "icon": "📱"
+    },
+    {
+      "id": "2",
+      "name": "YouTube",
+      "url": "https://youtube.com/@yourchannel",
+      "icon": "▶️"
+    },
+    {
+      "id": "3",
+      "name": "VK",
+      "url": "https://vk.com/yourgroup",
+      "icon": "📘"
+    }
+  ]
+}

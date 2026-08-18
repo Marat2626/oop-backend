@@ -1,0 +1,37 @@
+:root {
+  --bg-color-violette: #1a1230;
+
+  --text-color-red: #ff0f43; /*цвет*/
+  --text-color-osn: #c1c2c7; /*цвет текста в хедере*/
+
+  --button-heder-border: #a486e3;
+  --bg-radios-buttom: 100px;
+
+  --font-display: "Alter Aves", sans-serif;
+  --font-body: "GT Walsheim Pro", Arial, sans-serif;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  overflow-x: clip;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  /* тот же цвет, что у героя — прозрачный sticky-хедер не даёт белую «дыру» */
+  background-color: var(--bg-color-violette);
+}
+body * {
+  margin: 0;
+  padding: 0;
+}
+a {
+  text-decoration: none;
+}
